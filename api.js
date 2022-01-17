@@ -14,14 +14,27 @@ async function getLoginData(authURL) {
     })
 }
 
-async function ssoLoginForTokenURL(username, password, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
-    const data = await getLoginData(authURL)
-    return (await fetch(authURL, {
+async function getLoginSSOResponse(authURL, username, password) {
+    const data = await getLoginData(authURL);
+    return await fetch(authURL, {
         method: 'POST',
         headers: data.authHeaders,
         body: new URLSearchParams(data.getLoginParams(username, password)),
         redirect: 'manual',
-    })).headers.get('Location')
+    });
+}
+
+async function ssoLoginForTokenURL(username, password, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
+    const authResponse = await getLoginSSOResponse(authURL, username, password);
+    if (authResponse.headers.has('Location')) {
+        return authResponse.headers.get('Location');
+    } else {
+        throw new Error(
+            (
+                /<span id="msg" class="auth_error" style="top:-19px;">(.+)<\/span>/g
+            ).exec(await authResponse.text())[1]
+        );
+    }
 }
 
 async function jxfwLogin(jxfwTokenURL) {
