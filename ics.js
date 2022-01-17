@@ -116,6 +116,71 @@ class ICS {
         }
         return this.calendarStart + this.separator + this.calendarEvents.join(this.separator) + this.calendarEnd;
     }
+
+    static scheduleJsonOfSemesterToICS(scheduleJSON, xnxqdm) {
+        const cal = new ICS()
+        scheduleJSON.forEach((course) => {
+            getCourseSchedules(xnxqdmToFirstDay[xnxqdm], course).forEach(([[startDate, endDate], count]) => {
+                cal.addEvent(course.kcmc, '', course.jxcdmcs, startDate, endDate, {
+                    freq: 'WEEKLY',
+                    count: count,
+                })
+            })
+        })
+        return cal
+    }
+}
+
+
+function zcsToStartWeekAndCount(zcs) {
+    const weeks = [...new Set(zcs.split(',').map(Number))].sort((a, b) => a - b);
+    let output = []
+    let weekStartIndex = 0
+    weeks.forEach((weekNum, index) => {
+        if (index === weeks.length - 1 || weeks[index + 1] !== weeks[index] + 1) {
+            output.push([weeks[weekStartIndex], index - weekStartIndex + 1])
+            weekStartIndex = index + 1
+        }
+    })
+    return output
+}
+
+function getCourseFirstDate(firstDayInSemester, week, dayOfTheWeek, jcArr) {
+    const day = new Date(firstDayInSemester)
+    day.setDate(day.getDate() + ((week - 1) * 7) + (dayOfTheWeek - 1))
+    return [
+        new Date(day.setHours(jcToHourMinute[jcArr[0]-1][0][0], jcToHourMinute[jcArr[0]-1][0][1])),
+        new Date(day.setHours(jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][0], jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][1])),
+    ]
+}
+
+function getCourseSchedules(firstDayInSemester, course) {
+    const schedules = zcsToStartWeekAndCount(course.zcs)
+    return schedules.map(([startWeek, count]) => [
+        getCourseFirstDate(firstDayInSemester, startWeek, course.xq,
+            course.jcdm2.split(',').map(Number)),
+        count,
+    ])
+}
+
+const jcToHourMinute = [
+    [[8,30], [9,15]],
+    [[9,20], [10,5]],
+    [[10,25], [11,10]],
+    [[11,15], [12,0]],
+    [[13,50], [14,35]],
+    [[14,40], [15,25]],
+    [[15,30], [16,15]],
+    [[16,30], [17,15]],
+    [[17,20], [18,5]],
+    [[18,30], [19,15]],
+    [[19,20], [20,5]],
+    [[20,10], [20,55]],
+]
+
+const xnxqdmToFirstDay = {
+    "202101": "2021-09-03",
+    "202102": "2022-02-21",
 }
 
 export default ICS
