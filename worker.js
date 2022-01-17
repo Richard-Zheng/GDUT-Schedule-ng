@@ -116,58 +116,105 @@ class ICS {
         }
         return this.calendarStart + this.separator + this.calendarEvents.join(this.separator) + this.calendarEnd;
     }
+
+    static scheduleJsonOfSemesterToICS(scheduleJSON, firstDay) {
+        const cal = new ICS()
+        scheduleJSON.forEach((course) => {
+            getCourseSchedules(firstDay, course).forEach(([[startDate, endDate], count]) => {
+                cal.addEvent(course.kcmc, '', course.jxcdmcs, startDate, endDate, {
+                    freq: 'WEEKLY',
+                    count: count,
+                })
+            })
+        })
+        return cal
+    }
 }
 
+function zcsToStartWeekAndCount(zcs) {
+    const weeks = [...new Set(zcs.split(',').map(Number))].sort((a, b) => a - b);
+    let output = []
+    let weekStartIndex = 0
+    weeks.forEach((weekNum, index) => {
+        if (index === weeks.length - 1 || weeks[index + 1] !== weeks[index] + 1) {
+            output.push([weeks[weekStartIndex], index - weekStartIndex + 1])
+            weekStartIndex = index + 1
+        }
+    })
+    return output
+}
+
+function getCourseFirstDate(firstDayInSemester, week, dayOfTheWeek, jcArr) {
+    const day = new Date(firstDayInSemester)
+    day.setDate(day.getDate() + ((week - 1) * 7) + (dayOfTheWeek - 1))
+    return [
+        new Date(day.setHours(jcToHourMinute[jcArr[0]-1][0][0], jcToHourMinute[jcArr[0]-1][0][1])),
+        new Date(day.setHours(jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][0], jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][1])),
+    ]
+}
+
+function getCourseSchedules(firstDayInSemester, course) {
+    const schedules = zcsToStartWeekAndCount(course.zcs)
+    return schedules.map(([startWeek, count]) => [
+        getCourseFirstDate(firstDayInSemester, startWeek, course.xq,
+            course.jcdm2.split(',').map(Number)),
+        count,
+    ])
+}
+
+const jcToHourMinute = [
+    [[8,30], [9,15]],
+    [[9,20], [10,5]],
+    [[10,25], [11,10]],
+    [[11,15], [12,0]],
+    [[13,50], [14,35]],
+    [[14,40], [15,25]],
+    [[15,30], [16,15]],
+    [[16,30], [17,15]],
+    [[17,20], [18,5]],
+    [[18,30], [19,15]],
+    [[19,20], [20,5]],
+    [[20,10], [20,55]],
+]
+
 addEventListener("fetch", (event) => {
-  event.respondWith(
-    handleRequest(event.request).catch(
-      (err) => new Response(err.stack, { status: 500 })
-    )
-  );
+    event.respondWith(
+        handleRequest(event.request).catch(
+            (err) => new Response(err.stack, { status: 500 })
+        )
+    );
 });
 
-/**
- * Many more examples available at:
- *   https://developers.cloudflare.com/workers/examples
- * @param {Request} request
- * @returns {Promise<Response>}
- */
 async function handleRequest(request) {
-  const { searchParams, pathname } = new URL(request.url);
+    const { searchParams, pathname } = new URL(request.url);
 
-  if (pathname.startsWith("/api")) {
-    const jxfwTokenURL = (await ssoLogin(config.AUTHLOGIN_URL, searchParams.get('username'), searchParams.get('password'))).replace('http://', 'https://')
-    const jxfwHeaders = await jxfwLogin(jxfwTokenURL)
-    const scheduleJSON = (await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + searchParams.get('xnxq'), {
-        headers: jxfwHeaders,
-    })).text()).match(/var kbxx = (\[.*?\]);/)[1]
-    return new Response(scheduleJSON, {
-        headers: { "Content-Type": "application/json" },
-    });
-  }
+    if (pathname.startsWith("/api")) {
+        const {username, password, xnxqdm} = Object.fromEntries(searchParams);
+        const jxfwTokenURL = (await ssoLoginForTokenURL(username,
+            password)).replace('http://', 'https://')
+        const jxfwSession = await jxfwLogin(jxfwTokenURL)
+        const xnxqData = await jxfwSession.getXnxqData(xnxqdm)
+        return new Response(JSON.stringify(xnxqData.scheduleJSON), {
+            headers: { "Content-Type": "application/json" },
+        });
+    } else if (pathname.startsWith("/generated")) {
+        const urlParts = pathname.split('_')
+        const username = urlParts[1]
+        const {password} = Object.fromEntries(searchParams);
+        const xnxqdm = urlParts[2].split('.')[0]
 
-  const xnxqdm = searchParams.get('xnxqdm')
-  const jxfwTokenURL = (await ssoLogin(config.AUTHLOGIN_URL, searchParams.get('username'), searchParams.get('password'))).replace('http://', 'https://')
-  const jxfwHeaders = await jxfwLogin(jxfwTokenURL)
-  const scheduleJSON = JSON.parse((await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm, {
-    headers: jxfwHeaders,
-  })).text()).match(/var kbxx = (\[.*?\]);/)[1])
-  const getCourseDateByWeek = await getCourseDateByWeekInit(xnxqdm, jxfwHeaders)
-const cal = new ICS()
-scheduleJSON.forEach((course) => {
-    const location = course.jxcdmcs
-    const schedules = weeksScheduleFormat(course.zcs.split(',').map(Number)).map((weekSchedule) => ({
-        startEndTime: getCourseDateByWeek(weekSchedule.startWeek, course.xq, course.jcdm2.split(',').map(Number)),
-        repeat: weekSchedule.times,
-    }))
-    schedules.forEach((schedule) => {
-        cal.addEvent(course.kcmc, '', location, schedule.startEndTime[0], schedule.startEndTime[1], {
-            freq: 'WEEKLY',
-            count: schedule.repeat,
+        const jxfwTokenURL = (await ssoLoginForTokenURL(username,
+            password)).replace('http://', 'https://')
+        const jxfwSession = await jxfwLogin(jxfwTokenURL)
+        const xnxqData = await jxfwSession.getXnxqData(xnxqdm)
+        const cal = ICS.scheduleJsonOfSemesterToICS(xnxqData.scheduleJSON,
+            await xnxqData.getFirstDayInSemester())
+        return new Response(cal.build(), {
+            headers: {"Content-type": "text/calendar;charset=utf-8"}
         })
-    })
-})
-return new Response(cal.build())
+    } else {
+        return new Response("Path name not exist.", { status: 404 })
+    }
 }
 
 async function getLoginData(authURL) {
@@ -183,14 +230,27 @@ async function getLoginData(authURL) {
     })
 }
 
-async function ssoLogin(authURL, username, password) {
-    const data = await getLoginData(authURL)
-    return (await fetch(authURL, {
+async function getLoginSSOResponse(authURL, username, password) {
+    const data = await getLoginData(authURL);
+    return await fetch(authURL, {
         method: 'POST',
         headers: data.authHeaders,
         body: new URLSearchParams(data.getLoginParams(username, password)),
         redirect: 'manual',
-    })).headers.get('Location')
+    });
+}
+
+async function ssoLoginForTokenURL(username, password, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
+    const authResponse = await getLoginSSOResponse(authURL, username, password);
+    if (authResponse.headers.has('Location')) {
+        return authResponse.headers.get('Location');
+    } else {
+        throw new Error(
+            (
+                /<span id="msg" class="auth_error" style="top:-19px;">(.+)<\/span>/g
+            ).exec(await authResponse.text())[1]
+        );
+    }
 }
 
 async function jxfwLogin(jxfwTokenURL) {
@@ -202,53 +262,25 @@ async function jxfwLogin(jxfwTokenURL) {
         headers: jxfwHeaders,
         redirect: 'manual',
     })
-    return jxfwHeaders
-}
-
-function weeksScheduleFormat(weeks) {
-    weeks = [...new Set(weeks)].sort((a, b) => {
-        return a - b;
-    });
-    let output = []
-    let weekStartIndex = 0
-    weeks.forEach((weekNum, index) => {
-        if (index == weeks.length - 1 || weeks[index + 1] != weeks[index] + 1) {
-            output.push({ startWeek: weeks[weekStartIndex], times: index - weekStartIndex + 1})
-            weekStartIndex = index + 1
-        }
+    return ({
+        jxfwHeaders: jxfwHeaders,
+        getXnxqData: async (xnxqdm) => ({
+            scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
+            getFirstDayInSemester: async () => getFirstDayInSemester(jxfwHeaders, xnxqdm)
+        }),
     })
-    return output
 }
 
-async function getCourseDateByWeekInit(xnxqdm, jxfwHeaders) {
-    const firstWeekMonday = new Date(JSON.parse(await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
+async function getScheduleJSON(jxfwHeaders, xnxqdm) {
+    return JSON.parse((await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm, {
         headers: jxfwHeaders,
-    })).text())[1].find((day) => day.xqmc == "1").rq)
-    return (week, dayOfTheWeek, jcArr) => {
-        const jcToHourMinute = [
-            [[8,30], [9,15]],
-            [[9,20], [10,5]],
-            [[10,25], [11,10]],
-            [[11,15], [12,0]],
-            [[13,50], [14,35]],
-            [[14,40], [15,25]],
-            [[15,30], [16,15]],
-            [[16,30], [17,15]],
-            [[17,20], [18,5]],
-            [[18,30], [19,15]],
-            [[19,20], [20,5]],
-            [[20,10], [20,55]],
-        ]
-        const day = new Date(firstWeekMonday)
-        day.setDate(day.getDate() + ((week - 1) * 7) + (dayOfTheWeek - 1))
-        if (jcArr == null) {
-            return day
-        }
-        return [
-            new Date(day.setHours(jcToHourMinute[jcArr[0]-1][0][0], jcToHourMinute[jcArr[0]-1][0][1])),
-            new Date(day.setHours(jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][0], jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][1])),
-        ]
-    }
+    })).text()).match(/var kbxx = (\[.*?]);/)[1])
+}
+
+async function getFirstDayInSemester(jxfwHeaders, xnxqdm) {
+    return new Date(JSON.parse(await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
+        headers: jxfwHeaders,
+    })).text())[1].find((day) => day.xqmc === "1").rq)
 }
 
 const config = {

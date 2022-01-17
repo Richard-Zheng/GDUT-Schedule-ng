@@ -131,7 +131,6 @@ class ICS {
     }
 }
 
-
 function zcsToStartWeekAndCount(zcs) {
     const weeks = [...new Set(zcs.split(',').map(Number))].sort((a, b) => a - b);
     let output = []

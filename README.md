@@ -21,10 +21,12 @@
 
 完成后请访问 `http://127.0.0.1:8080/generated_学号_学年学期代码.ics?password=密码`
 
-### Serveless 部署
+**密码将不加密且明文传输**，仅在确保安全的局域网内使用。
+
+### Serverless 部署
 
 1. 注册/登录 Cloudflare 账户
 2. 创建 Cloudflare Workers
 3. 把 `worker.js` 文件中的代码粘贴进去
 
-完成后请访问 `https://你的域名/?username=学号&password=密码&xnxqdm=学年学期代码`
+完成后请访问 `https://你的域名/generated_学号_学年学期代码.ics?password=密码`
