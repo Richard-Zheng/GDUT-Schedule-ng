@@ -15,9 +15,9 @@ server.on('request', async (req, res) => {
         const jxfwTokenURL = (await apis.ssoLoginForTokenURL(username,
             password)).replace('http://', 'https://')
         const jxfwSession = await apis.jxfwLogin(jxfwTokenURL)
-        const jxfwData = await jxfwSession.getXnxqData(xnxqdm)
-        const cal = ICS.scheduleJsonOfSemesterToICS(jxfwData.scheduleJSON,
-            xnxqdm)
+        const xnxqData = await jxfwSession.getXnxqData(xnxqdm)
+        const cal = ICS.scheduleJsonOfSemesterToICS(xnxqData.scheduleJSON,
+            await xnxqData.getFirstDayInSemester())
         res.writeHead(200, {"Content-type": "text/calendar;charset=utf-8"});
         res.end(cal.build())
     } catch (e) {

@@ -50,7 +50,7 @@ async function jxfwLogin(jxfwTokenURL) {
         jxfwHeaders: jxfwHeaders,
         getXnxqData: async (xnxqdm) => ({
             scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
-            getCourseDateByWeek: await getCourseDateByWeekInit(jxfwHeaders, xnxqdm),
+            getFirstDayInSemester: async () => getFirstDayInSemester(jxfwHeaders, xnxqdm)
         }),
     })
 }
@@ -58,38 +58,13 @@ async function jxfwLogin(jxfwTokenURL) {
 async function getScheduleJSON(jxfwHeaders, xnxqdm) {
     return JSON.parse((await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm, {
         headers: jxfwHeaders,
-    })).text()).match(/var kbxx = (\[.*?\]);/)[1])
+    })).text()).match(/var kbxx = (\[.*?]);/)[1])
 }
 
-async function getCourseDateByWeekInit(jxfwHeaders, xnxqdm) {
-    const firstWeekMonday = new Date(JSON.parse(await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
+async function getFirstDayInSemester(jxfwHeaders, xnxqdm) {
+    return new Date(JSON.parse(await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
         headers: jxfwHeaders,
-    })).text())[1].find((day) => day.xqmc == "1").rq)
-    return (week, dayOfTheWeek, jcArr) => {
-        const jcToHourMinute = [
-            [[8,30], [9,15]],
-            [[9,20], [10,5]],
-            [[10,25], [11,10]],
-            [[11,15], [12,0]],
-            [[13,50], [14,35]],
-            [[14,40], [15,25]],
-            [[15,30], [16,15]],
-            [[16,30], [17,15]],
-            [[17,20], [18,5]],
-            [[18,30], [19,15]],
-            [[19,20], [20,5]],
-            [[20,10], [20,55]],
-        ]
-        const day = new Date(firstWeekMonday)
-        day.setDate(day.getDate() + ((week - 1) * 7) + (dayOfTheWeek - 1))
-        if (jcArr == null) {
-            return day
-        }
-        return [
-            new Date(day.setHours(jcToHourMinute[jcArr[0]-1][0][0], jcToHourMinute[jcArr[0]-1][0][1])),
-            new Date(day.setHours(jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][0], jcToHourMinute[jcArr[jcArr.length - 1] - 1][1][1])),
-        ]
-    }
+    })).text())[1].find((day) => day.xqmc === "1").rq)
 }
 
 export default { ssoLoginForTokenURL, jxfwLogin }

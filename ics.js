@@ -117,10 +117,10 @@ class ICS {
         return this.calendarStart + this.separator + this.calendarEvents.join(this.separator) + this.calendarEnd;
     }
 
-    static scheduleJsonOfSemesterToICS(scheduleJSON, xnxqdm) {
+    static scheduleJsonOfSemesterToICS(scheduleJSON, firstDay) {
         const cal = new ICS()
         scheduleJSON.forEach((course) => {
-            getCourseSchedules(xnxqdmToFirstDay[xnxqdm], course).forEach(([[startDate, endDate], count]) => {
+            getCourseSchedules(firstDay, course).forEach(([[startDate, endDate], count]) => {
                 cal.addEvent(course.kcmc, '', course.jxcdmcs, startDate, endDate, {
                     freq: 'WEEKLY',
                     count: count,
@@ -177,10 +177,5 @@ const jcToHourMinute = [
     [[19,20], [20,5]],
     [[20,10], [20,55]],
 ]
-
-const xnxqdmToFirstDay = {
-    "202101": "2021-09-03",
-    "202102": "2022-02-21",
-}
 
 export default ICS
