@@ -220,8 +220,8 @@ async function handleRequest(request) {
 async function getLoginData(authURL) {
     const resp = await fetch(authURL)
     const respHTML = await resp.text()
-    const pwdSalt = /.*<input type="hidden" id="pwdDefaultEncryptSalt" value="(\S+)"\/?>/.exec(respHTML)[1]
-    const loginParams = Object.fromEntries([...(respHTML).matchAll(/<input type="hidden" name="(\S+)" value="(\S+)"\/?>$/gm)].map(m => [m[1], m[2]]))
+    const pwdSalt = /<input type="hidden" id="pwdEncryptSalt" value="(\S+)" ?\/?>/.exec(respHTML)[1]
+    const loginParams = Object.fromEntries([...(respHTML).matchAll(/<input type="hidden" (?:id="(?:\S+)" )?name="(\S+)" value="(\S+)"\/?>/gm)].map(m => [m[1], m[2]]))
     return ({
         getLoginParams: (username, password) => {
             return {...loginParams, ...{username: username, password: encryptAES(password, pwdSalt)}}
