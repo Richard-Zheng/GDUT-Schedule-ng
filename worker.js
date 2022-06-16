@@ -221,12 +221,29 @@ async function getLoginData(authURL) {
     const resp = await fetch(authURL)
     const respHTML = await resp.text()
     const pwdSalt = /<input type="hidden" id="pwdEncryptSalt" value="(\S+)" ?\/?>/.exec(respHTML)[1]
-    const loginParams = Object.fromEntries([...(respHTML).matchAll(/<input type="hidden" (?:id="(?:\S+)" )?name="(\S+)" value="(\S+)"\/?>/gm)].map(m => [m[1], m[2]]))
+    
     return ({
         getLoginParams: (username, password) => {
-            return {...loginParams, ...{username: username, password: encryptAES(password, pwdSalt)}}
+            return {
+                username: username,
+                password: encryptAES(password, pwdSalt),
+                captcha: '',
+                _eventId: 'submit',
+                lt: '',
+                cllt: 'userNameLogin',
+                dllt: 'generalLogin',
+                execution: /<input type="hidden" name="execution" value="(\S+)" ?\/?>/.exec(respHTML)[1],
+            }
         },
-        authHeaders: {'Cookie': resp.headers.get('set-cookie')},
+        authHeaders: {
+            'Accept': '*/*',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Host': 'authserver.gdut.edu.cn',
+            'Origin': 'https://authserver.gdut.edu.cn',
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.0.0 Mobile Safari/537.36',
+            'Cookie': resp.headers.get('set-cookie'),
+        },
     })
 }
 
@@ -247,7 +264,7 @@ async function ssoLoginForTokenURL(username, password, authURL='https://authserv
     } else {
         throw new Error(
             (
-                /<span id="msg" class="auth_error" style="top:-19px;">(.+)<\/span>/g
+                /<span id="showErrorTip"><span>(.+)<\/span><\/span>/g
             ).exec(await authResponse.text())[1]
         );
     }
