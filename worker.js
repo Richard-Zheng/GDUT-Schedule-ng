@@ -208,7 +208,7 @@ async function handleRequest(request) {
         const jxfwSession = await jxfwLogin(jxfwTokenURL)
         const xnxqData = await jxfwSession.getXnxqData(xnxqdm)
         const cal = ICS.scheduleJsonOfSemesterToICS(xnxqData.scheduleJSON,
-            await xnxqData.getFirstDayInSemester())
+            xnxqData.firstDayInSemester)
         return new Response(cal.build(), {
             headers: {"Content-type": "text/calendar;charset=utf-8"}
         })
@@ -226,7 +226,7 @@ async function getLoginData(authURL) {
         getLoginParams: (username, password) => {
             return {
                 username: username,
-                password: encryptAES(password, pwdSalt),
+                password: encryptPassword(password, pwdSalt),
                 captcha: '',
                 _eventId: 'submit',
                 lt: '',
@@ -283,7 +283,7 @@ async function jxfwLogin(jxfwTokenURL) {
         jxfwHeaders: jxfwHeaders,
         getXnxqData: async (xnxqdm) => ({
             scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
-            getFirstDayInSemester: async () => getFirstDayInSemester(jxfwHeaders, xnxqdm)
+            firstDayInSemester: await getFirstDayInSemester(jxfwHeaders, xnxqdm)
         }),
     })
 }
@@ -333,6 +333,4 @@ b.keySize,b.ivSize);l.iv=d.iv;b=a.encrypt.call(this,b,c,d.key,l);b.mixIn(d);retu
 (function(){for(var u=CryptoJS,p=u.lib.BlockCipher,d=u.algo,l=[],s=[],t=[],r=[],w=[],v=[],b=[],x=[],q=[],n=[],a=[],c=0;256>c;c++)a[c]=128>c?c<<1:c<<1^283;for(var e=0,j=0,c=0;256>c;c++){var k=j^j<<1^j<<2^j<<3^j<<4,k=k>>>8^k&255^99;l[e]=k;s[k]=e;var z=a[e],F=a[z],G=a[F],y=257*a[k]^16843008*k;t[e]=y<<24|y>>>8;r[e]=y<<16|y>>>16;w[e]=y<<8|y>>>24;v[e]=y;y=16843009*G^65537*F^257*z^16843008*e;b[k]=y<<24|y>>>8;x[k]=y<<16|y>>>16;q[k]=y<<8|y>>>24;n[k]=y;e?(e=z^a[a[a[G^z]]],j^=a[a[j]]):e=j=1}var H=[0,1,2,4,8,
 16,32,64,128,27,54],d=d.AES=p.extend({_doReset:function(){for(var a=this._key,c=a.words,d=a.sigBytes/4,a=4*((this._nRounds=d+6)+1),e=this._keySchedule=[],j=0;j<a;j++)if(j<d)e[j]=c[j];else{var k=e[j-1];j%d?6<d&&4==j%d&&(k=l[k>>>24]<<24|l[k>>>16&255]<<16|l[k>>>8&255]<<8|l[k&255]):(k=k<<8|k>>>24,k=l[k>>>24]<<24|l[k>>>16&255]<<16|l[k>>>8&255]<<8|l[k&255],k^=H[j/d|0]<<24);e[j]=e[j-d]^k}c=this._invKeySchedule=[];for(d=0;d<a;d++)j=a-d,k=d%4?e[j]:e[j-4],c[d]=4>d||4>=j?k:b[l[k>>>24]]^x[l[k>>>16&255]]^q[l[k>>>
 8&255]]^n[l[k&255]]},encryptBlock:function(a,b){this._doCryptBlock(a,b,this._keySchedule,t,r,w,v,l)},decryptBlock:function(a,c){var d=a[c+1];a[c+1]=a[c+3];a[c+3]=d;this._doCryptBlock(a,c,this._invKeySchedule,b,x,q,n,s);d=a[c+1];a[c+1]=a[c+3];a[c+3]=d},_doCryptBlock:function(a,b,c,d,e,j,l,f){for(var m=this._nRounds,g=a[b]^c[0],h=a[b+1]^c[1],k=a[b+2]^c[2],n=a[b+3]^c[3],p=4,r=1;r<m;r++)var q=d[g>>>24]^e[h>>>16&255]^j[k>>>8&255]^l[n&255]^c[p++],s=d[h>>>24]^e[k>>>16&255]^j[n>>>8&255]^l[g&255]^c[p++],t=
-d[k>>>24]^e[n>>>16&255]^j[g>>>8&255]^l[h&255]^c[p++],n=d[n>>>24]^e[g>>>16&255]^j[h>>>8&255]^l[k&255]^c[p++],g=q,h=s,k=t;q=(f[g>>>24]<<24|f[h>>>16&255]<<16|f[k>>>8&255]<<8|f[n&255])^c[p++];s=(f[h>>>24]<<24|f[k>>>16&255]<<16|f[n>>>8&255]<<8|f[g&255])^c[p++];t=(f[k>>>24]<<24|f[n>>>16&255]<<16|f[g>>>8&255]<<8|f[h&255])^c[p++];n=(f[n>>>24]<<24|f[g>>>16&255]<<16|f[h>>>8&255]<<8|f[k&255])^c[p++];a[b]=q;a[b+1]=s;a[b+2]=t;a[b+3]=n},keySize:8});u.AES=p._createHelper(d)})();function _gas(data,key0,
-iv0){key0=key0.replace(/(^\s+)|(\s+$)/g, "");var key  = CryptoJS.enc.Utf8.parse(key0);var iv   = CryptoJS.enc.Utf8.parse(iv0);var encrypted =CryptoJS.AES.encrypt(data,key,{iv:iv,mode:CryptoJS.mode.CBC,padding:CryptoJS.pad.Pkcs7});return encrypted.toString();}function encryptAES(data,_p1){if(!_p1){return data;}var encrypted =_gas(_rds(64)+data,_p1,_rds(16));return encrypted;}function _ep(p0,p1) {try{return encryptAES(p0,p1);}catch(e){}return p0;
-}var $_chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';var _chars_len = $_chars.length;function _rds(len) {var retStr = '';for (i = 0; i < len; i++) {retStr += $_chars.charAt(Math.floor(Math.random() * _chars_len));}return retStr;}
+d[k>>>24]^e[n>>>16&255]^j[g>>>8&255]^l[h&255]^c[p++],n=d[n>>>24]^e[g>>>16&255]^j[h>>>8&255]^l[k&255]^c[p++],g=q,h=s,k=t;q=(f[g>>>24]<<24|f[h>>>16&255]<<16|f[k>>>8&255]<<8|f[n&255])^c[p++];s=(f[h>>>24]<<24|f[k>>>16&255]<<16|f[n>>>8&255]<<8|f[g&255])^c[p++];t=(f[k>>>24]<<24|f[n>>>16&255]<<16|f[g>>>8&255]<<8|f[h&255])^c[p++];n=(f[n>>>24]<<24|f[g>>>16&255]<<16|f[h>>>8&255]<<8|f[k&255])^c[p++];a[b]=q;a[b+1]=s;a[b+2]=t;a[b+3]=n},keySize:8});u.AES=p._createHelper(d)})();function getAesString(data,key0,iv0){key0=key0.replace(/(^\s+)|(\s+$)/g, "");var key  = CryptoJS.enc.Utf8.parse(key0);var iv   = CryptoJS.enc.Utf8.parse(iv0);var encrypted =CryptoJS.AES.encrypt(data,key,{iv:iv,mode:CryptoJS.mode.CBC,padding:CryptoJS.pad.Pkcs7});return encrypted.toString();}function encryptAES(data,aesKey){if(!aesKey){return data;}var encrypted =getAesString(randomString(64)+data,aesKey,randomString(16));return encrypted;}function encryptPassword(pwd0,key) {try{return encryptAES(pwd0,key);}catch(e){}return pwd0;}var $aes_chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678';var aes_chars_len = $aes_chars.length;function randomString(len) {var retStr = '';for (i = 0; i < len; i++) {retStr += $aes_chars.charAt(Math.floor(Math.random() * aes_chars_len));}return retStr;}
