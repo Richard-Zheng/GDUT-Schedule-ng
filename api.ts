@@ -48,17 +48,33 @@ async function ssoLoginForTokenURL(username: string | number, password: string, 
         throw new Error(errorMessage);
     }
 }
-type JXFWHeaders = {
-    Cookie: string,
+
+type JxfwSession = {
+    jxfwHeaders: HeadersInit,
+    getXnxqData: (xnxqdm: string | number) => Promise<{
+        scheduleJSON: kecheng[],
+        firstDayInSemester: Date,
+    }>,
+}
+
+type kecheng = {
+    jcdm2: string,
+    jxbmc: string,
+    jxcdmcs: string,
+    kcbh: string,
+    kcmc: string,
+    kcrwdm: string,
+    teaxms: string,
+    xq: string,
+    zcs: string,
 }
 
 async function jxfwLogin(jxfwTokenURL: string | URL | Request) {
     const jxfwLoginResponse = await fetch(jxfwTokenURL, {
         redirect: 'manual',
     })
-    const jxfwHeaders = {'Cookie': jxfwLoginResponse.headers.get('Set-Cookie')!} as JXFWHeaders
-    const jxfwLoginRedirectURL = jxfwLoginResponse.headers.get('Location')!
-    const jxfwssoLoginResp = await fetch(jxfwLoginRedirectURL.replace("http://", "https://"), {
+    const jxfwHeaders = {'Cookie': jxfwLoginResponse.headers.get('Set-Cookie')!} as HeadersInit
+    const jxfwssoLoginResp = await fetch(jxfwLoginResponse.headers.get('Location')!.replace("http://", "https://"), {
         headers: jxfwHeaders,
         redirect: 'manual',
     })
@@ -71,18 +87,18 @@ async function jxfwLogin(jxfwTokenURL: string | URL | Request) {
             scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
             firstDayInSemester: await getFirstDayInSemester(jxfwHeaders, xnxqdm)
         }),
-    })
+    }) as JxfwSession
 }
 
-async function getScheduleJSON(jxfwHeaders: JXFWHeaders, xnxqdm: string | number) {
+async function getScheduleJSON(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
     const htmlPage = await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm.toString(), {
         headers: jxfwHeaders,
     })).text()
     console.log(htmlPage, 'https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm.toString())
-    return JSON.parse(htmlPage.match(/var kbxx = (\[.*?]);/)![1])
+    return JSON.parse(htmlPage.match(/var kbxx = (\[.*?]);/)![1]) as kecheng[]
 }
 
-async function getFirstDayInSemester(jxfwHeaders: JXFWHeaders, xnxqdm: string | number) {
+async function getFirstDayInSemester(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
     const firstWeekDay = (await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
         headers: jxfwHeaders,
     })).json())[1] as Array<{xqmc: string, rq: string}>
