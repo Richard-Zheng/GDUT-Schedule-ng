@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.143.0/http/server.ts";
-import apis from "./api.js";
+import apis from "./api.ts";
 import ICS from "./ics.js";
 
 serve(handler, { port: 8080 });
