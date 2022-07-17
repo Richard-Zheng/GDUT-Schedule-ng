@@ -58,22 +58,34 @@ type JxfwSession = {
 }
 
 type kecheng = {
-    jcdm2: string,
+    /** 节次代码 example: '01,02' */
+    jcdm2: string, 
+    /** 教学班名称 */
     jxbmc: string,
+    /** 教学场地名称 */
     jxcdmcs: string,
+    /** 课程编号 */
     kcbh: string,
+    /** 课程名称 */
     kcmc: string,
+    /** 课程任务代码 */
     kcrwdm: string,
+    /** 教师姓名 */
     teaxms: string,
+    /** 星期 */
     xq: string,
+    /** 周次 */
     zcs: string,
 }
 
-async function jxfwLogin(jxfwTokenURL: string | URL | Request) {
+async function jxfwLogin(jxfwTokenURL: string | URL | Request): Promise<JxfwSession> {
     const jxfwLoginResponse = await fetch(jxfwTokenURL, {
         redirect: 'manual',
     })
-    const jxfwHeaders = {'Cookie': jxfwLoginResponse.headers.get('Set-Cookie')!} as HeadersInit
+    const jxfwHeaders: HeadersInit = {
+        'Cookie': jxfwLoginResponse.headers.get('Set-Cookie')!,
+        'Referer': 'https://jxfw.gdut.edu.cn/',
+    }
     const jxfwssoLoginResp = await fetch(jxfwLoginResponse.headers.get('Location')!.replace("http://", "https://"), {
         headers: jxfwHeaders,
         redirect: 'manual',
@@ -87,7 +99,7 @@ async function jxfwLogin(jxfwTokenURL: string | URL | Request) {
             scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
             firstDayInSemester: await getFirstDayInSemester(jxfwHeaders, xnxqdm)
         }),
-    }) as JxfwSession
+    })
 }
 
 async function getScheduleJSON(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
