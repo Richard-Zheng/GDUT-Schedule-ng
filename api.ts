@@ -39,7 +39,7 @@ async function getLoginSSOResponse(authURL: string | URL | Request, username: st
     });
 }
 
-async function ssoLoginForTokenURL(username: string | number, password: string, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
+export async function ssoLoginForTokenURL(username: string | number, password: string, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
     const authResponse = await getLoginSSOResponse(authURL, username, password);
     if (authResponse.headers.has('Location')) {
         return authResponse.headers.get('Location');
@@ -49,15 +49,7 @@ async function ssoLoginForTokenURL(username: string | number, password: string, 
     }
 }
 
-type JxfwSession = {
-    jxfwHeaders: HeadersInit,
-    getXnxqData: (xnxqdm: string | number) => Promise<{
-        scheduleJSON: kecheng[],
-        firstDayInSemester: Date,
-    }>,
-}
-
-type kecheng = {
+export interface CourseSchedule {
     /** 节次代码 example: '01,02' */
     jcdm2: string, 
     /** 教学班名称 */
@@ -78,7 +70,7 @@ type kecheng = {
     zcs: string,
 }
 
-async function jxfwLogin(jxfwTokenURL: string | URL | Request): Promise<JxfwSession> {
+export async function jxfwLogin(jxfwTokenURL: string | URL | Request): Promise<HeadersInit> {
     const jxfwLoginResponse = await fetch(jxfwTokenURL, {
         redirect: 'manual',
     })
@@ -93,28 +85,38 @@ async function jxfwLogin(jxfwTokenURL: string | URL | Request): Promise<JxfwSess
     if (jxfwssoLoginResp.headers.get('Location') !== 'https://jxfw.gdut.edu.cn/login!welcome.action') {
         console.log('Warning: JXFW login not redirect to main page', jxfwssoLoginResp.headers.get('Location'));
     }
-    return ({
-        jxfwHeaders: jxfwHeaders,
-        getXnxqData: async (xnxqdm: string | number) => ({
-            scheduleJSON: await getScheduleJSON(jxfwHeaders, xnxqdm),
-            firstDayInSemester: await getFirstDayInSemester(jxfwHeaders, xnxqdm)
-        }),
-    })
+    return jxfwHeaders
 }
 
-async function getScheduleJSON(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
+/**
+ * 学生个人学期课表 API
+ * @param xnxqdm 学年学期代码
+ */
+export async function xsAllKbList(jxfwHeaders: HeadersInit, xnxqdm: string | number): Promise<CourseSchedule[]> {
     const htmlPage = await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm.toString(), {
         headers: jxfwHeaders,
     })).text()
-    console.log(htmlPage, 'https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm.toString())
-    return JSON.parse(htmlPage.match(/var kbxx = (\[.*?]);/)![1]) as kecheng[]
+    return JSON.parse(htmlPage.match(/var kbxx = (\[.*?]);/)![1])
 }
 
-async function getFirstDayInSemester(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
-    const firstWeekDay = (await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=1&xnxqdm=' + xnxqdm, {
+/**
+ * 学生按周课表 API
+ * @param jxfwHeaders JXFW 登录后的 headers
+ * @param zc 周次
+ * @param xnxqdm 学年学期代码
+ */
+export async function getKbRq(jxfwHeaders: HeadersInit, zc: string | number, xnxqdm: string | number) {
+    return await (await fetch(`https://jxfw.gdut.edu.cn/xsgrkbcx!getKbRq.action?zc=${zc}&xnxqdm=${xnxqdm}`, {
         headers: jxfwHeaders,
-    })).json())[1] as Array<{xqmc: string, rq: string}>
+    })).json()
+}
+
+/**
+ * @param jxfwHeaders JXFW 登录后的 headers
+ * @param xnxqdm 学年学期代码
+ * @returns 该学期的第一天
+ */
+export async function getFirstDayInSemester(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
+    const firstWeekDay = (await getKbRq(jxfwHeaders, '1', xnxqdm))[1] as Array<{xqmc: string, rq: string}>;
     return new Date(firstWeekDay.find((day) => day.xqmc === "1")!.rq)
 }
-
-export default { ssoLoginForTokenURL, jxfwLogin }
