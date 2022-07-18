@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.143.0/http/server.ts";
-import {ssoLoginForTokenURL, jxfwLogin, xsAllKbList, getFirstDayInSemester} from "./api.ts";
+import * as api from "./api.ts";
 import { ICSCalendar } from "./ics.ts";
 import { CourseSchedule } from "./course.ts";
 
@@ -12,11 +12,11 @@ async function handler(req: Request): Promise<Response> {
     const { password } = Object.fromEntries(url.searchParams);
     const xnxqdm = urlParts[2].split(".")[0];
 
-    const jxfwTokenURL = (await ssoLoginForTokenURL(username, password))!
+    const jxfwTokenURL = (await api.ssoLoginForTokenURL(username, password))!
       .replace("http://", "https://");
-    const jxfwSession = await jxfwLogin(jxfwTokenURL);
-    const xnxqData = await xsAllKbList(jxfwSession, xnxqdm);
-    const firstDayInSemester = await getFirstDayInSemester(jxfwSession, xnxqdm);
+    const jxfwSession = await api.jxfwLogin(jxfwTokenURL);
+    const xnxqData = await api.xsAllKbList(jxfwSession, xnxqdm);
+    const firstDayInSemester = await api.getFirstDayInSemester(jxfwSession, xnxqdm);
     const cal = new ICSCalendar();
     for (const course of xnxqData) {
       const courseSchedule = new CourseSchedule(course.jcdm2, course.jxbmc, course.jxcdmcs, course.kcbh, course.kcmc, course.kcrwdm, course.teaxms, Number(course.xq), course.zcs);
@@ -25,7 +25,6 @@ async function handler(req: Request): Promise<Response> {
         cal.addEvent(courseSchedule.kcmc, date.start, date.end, undefined, undefined, courseSchedule.jxcdmcs, {freq: 'WEEKLY', count: date.count});
       }
     }
-    console.log(xnxqData)
     const calstr = cal.toString();
     if (!calstr) {
       return new Response('Error')

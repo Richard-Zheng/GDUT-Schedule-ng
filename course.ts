@@ -53,7 +53,7 @@ export class CourseSchedule {
      * @param zcs 周次
      */
     constructor(jcdm2: string, jxbmc: string, jxcdmcs: string, kcbh: string, kcmc: string, kcrwdm: string, teaxms: string, xq: number, zcs: string) {
-        this.jcArr = jcdm2.split(',').map(Number);
+        this.jcArr = jcdm2.split(',').map(Number).filter(x => x > 0);
         this.jxbmc = jxbmc;
         this.jxcdmcs = jxcdmcs;
         this.kcbh = kcbh;
@@ -66,6 +66,10 @@ export class CourseSchedule {
 
     getCourseSchedulesInDate(firstDayInSemester: Date) {
         const courseSchedules: CourseDateTime[] = [];
+        if (this.jcArr.length === 0) {
+            console.log('Warning: 课程表中没有节次，课程名称：' + this.kcmc);
+            return courseSchedules;
+        }
         for (const zcSchedule of this.zcSchedules) {
             const day = new Date(firstDayInSemester)
             // 偏移至这个连续周次的第一周对应星期的那一天
