@@ -49,7 +49,7 @@ export async function ssoLoginForTokenURL(username: string | number, password: s
     }
 }
 
-export interface CourseSchedule {
+export interface CourseScheduleJSON {
     /** 节次代码 example: '01,02' */
     jcdm2: string, 
     /** 教学班名称 */
@@ -92,7 +92,7 @@ export async function jxfwLogin(jxfwTokenURL: string | URL | Request): Promise<H
  * 学生个人学期课表 API
  * @param xnxqdm 学年学期代码
  */
-export async function xsAllKbList(jxfwHeaders: HeadersInit, xnxqdm: string | number): Promise<CourseSchedule[]> {
+export async function xsAllKbList(jxfwHeaders: HeadersInit, xnxqdm: string | number): Promise<CourseScheduleJSON[]> {
     const htmlPage = await (await fetch('https://jxfw.gdut.edu.cn/xsgrkbcx!xsAllKbList.action?xnxqdm=' + xnxqdm.toString(), {
         headers: jxfwHeaders,
     })).text()
@@ -119,4 +119,20 @@ export async function getKbRq(jxfwHeaders: HeadersInit, zc: string | number, xnx
 export async function getFirstDayInSemester(jxfwHeaders: HeadersInit, xnxqdm: string | number) {
     const firstWeekDay = (await getKbRq(jxfwHeaders, '1', xnxqdm))[1] as Array<{xqmc: string, rq: string}>;
     return new Date(firstWeekDay.find((day) => day.xqmc === "1")!.rq)
+}
+
+export async function getXzkcList(jxfwHeaders: HeadersInit) {
+    return await (await fetch("https://jxfw.gdut.edu.cn/xsxklist!getXzkcList.action", {
+        "headers": jxfwHeaders,
+        "body": "sort=kcrwdm&order=asc",
+        "method": "POST",
+    })).json();
+}
+
+export async function getAdd(jxfwHeaders: HeadersInit, kcrwdm: string | number, kcmc: string) {
+    return await (await fetch("https://jxfw.gdut.edu.cn/xsxklist!getAdd.action", {
+        "headers": jxfwHeaders,
+        "body": `kcrwdm=${kcrwdm}&kcmc=${kcmc}`,
+        "method": "POST",
+    })).text()
 }

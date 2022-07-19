@@ -19,7 +19,7 @@ async function handler(req: Request): Promise<Response> {
     const firstDayInSemester = await api.getFirstDayInSemester(jxfwSession, xnxqdm);
     const cal = new ICSCalendar();
     for (const course of xnxqData) {
-      const courseSchedule = new CourseSchedule(course.jcdm2, course.jxbmc, course.jxcdmcs, course.kcbh, course.kcmc, course.kcrwdm, course.teaxms, Number(course.xq), course.zcs);
+      const courseSchedule = new CourseSchedule(course);
       const dates = courseSchedule.getCourseSchedulesInDate(firstDayInSemester);
       for (const date of dates) {
         cal.addEvent(courseSchedule.kcmc, date.start, date.end, undefined, undefined, courseSchedule.jxcdmcs, {freq: 'WEEKLY', count: date.count});

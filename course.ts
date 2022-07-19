@@ -1,3 +1,5 @@
+import {CourseScheduleJSON} from './api.ts'
+
 interface ZhouCi {
     /** 从第几周开始 */
     startWeek: number,
@@ -7,11 +9,11 @@ interface ZhouCi {
 
 interface CourseDateTime {
     /**
-     * 第一节课的开始时间
+     * 第一次课的开始时间
      */
     start: Date,
     /**
-     * 第一节课的结束时间
+     * 第一次课的结束时间
      */
     end: Date,
     /**
@@ -42,17 +44,8 @@ export class CourseSchedule {
 
     /**
      * 从 xsgrkbcx!xsAllKbList.action API 获取的课程表
-     * @param jcdm2 节次代码
-     * @param jxbmc 教学班名称
-     * @param jxcdmcs 教学场地名称
-     * @param kcbh 课程编号
-     * @param kcmc 课程名称
-     * @param kcrwdm 课程任务代码
-     * @param teaxms 教师姓名
-     * @param xq 星期
-     * @param zcs 周次
      */
-    constructor(jcdm2: string, jxbmc: string, jxcdmcs: string, kcbh: string, kcmc: string, kcrwdm: string, teaxms: string, xq: number, zcs: string) {
+    constructor({jcdm2, jxbmc, jxcdmcs, kcbh, kcmc, kcrwdm, teaxms, xq, zcs}: CourseScheduleJSON) {
         this.jcArr = jcdm2.split(',').map(Number).filter(x => x > 0);
         this.jxbmc = jxbmc;
         this.jxcdmcs = jxcdmcs;
@@ -60,7 +53,7 @@ export class CourseSchedule {
         this.kcmc = kcmc;
         this.kcrwdm = kcrwdm;
         this.teaxms = teaxms;
-        this.xq = xq;
+        this.xq = Number(xq);
         this.zcSchedules = zcsToStartWeekAndCount(zcs);
     }
 

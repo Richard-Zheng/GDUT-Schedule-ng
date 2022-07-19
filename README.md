@@ -14,10 +14,10 @@
 
 ### 本地部署
 
-1. 下载 Node.js 并安装
+1. 安装 [Deno](https://deno.land/#installation)
+   - Windows 直接从 Releases 下载[最新版可执行文件](https://github.com/denoland/deno/releases/latest/download/deno-x86_64-pc-windows-msvc.zip)即可，无需安装。
 2. Clone 此代码库
-3. `npm install`
-4. `node index.js`
+3. 打开代码库目录，把 Deno 可执行文件也复制进来，然后命令行执行 `./deno run --allow-net .\index.ts`
 
 完成后请访问 `http://127.0.0.1:8080/generated_学号_学年学期代码.ics?password=密码`
 
