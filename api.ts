@@ -39,7 +39,7 @@ async function getLoginSSOResponse(authURL: string | URL | Request, username: st
     });
 }
 
-export async function ssoLoginForTokenURL(username: string | number, password: string, authURL='https://authserver.gdut.edu.cn/authserver/login?service=http%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
+export async function ssoLoginForTokenURL(username: string | number, password: string, authURL='https://authserver.gdut.edu.cn/authserver/login?service=https%3A%2F%2Fjxfw.gdut.edu.cn%2Fnew%2FssoLogin') {
     const authResponse = await getLoginSSOResponse(authURL, username, password);
     if (authResponse.headers.has('Location')) {
         return authResponse.headers.get('Location');
